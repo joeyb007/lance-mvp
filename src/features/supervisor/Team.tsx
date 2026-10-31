@@ -5,9 +5,10 @@ import type { HousekeeperId, Projection, TeamStatus } from '../../domain/types'
 import { useStore } from '../../state/store'
 import { Avatar, Card, Section } from '../../ui'
 
-const TEXT: Record<TeamStatus, string> = { green: 'text-accent', amber: 'text-amber', red: 'text-danger' }
-// Rooms inside the shift take the status colour (light red when the person is over); rooms past shift end are solid red.
-const BAR: Record<TeamStatus, string> = { green: 'bg-accent', amber: 'bg-amber', red: 'bg-danger/30' }
+// Colour rule (TDD §9): red only for "can't be done". Running late reads amber; the only red is the bar past shift end.
+const TEXT: Record<TeamStatus, string> = { green: 'text-accent', amber: 'text-amber', red: 'text-amber' }
+// Rooms inside the shift take the status colour (amber when the person is over); rooms past shift end are solid red.
+const BAR: Record<TeamStatus, string> = { green: 'bg-accent', amber: 'bg-amber', red: 'bg-amber' }
 
 function finishText(p: Projection): string {
   if (p.roomsLeft === 0) return 'All rooms done'
@@ -43,7 +44,7 @@ function TeamRow({ id, p }: { id: HousekeeperId; p: Projection }) {
   const pct = (m: number) => `${(Math.max(0, m - state.now) / span) * 100}%`
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3" data-testid={`team-${id}`}>
+    <div className="flex scroll-mt-3 items-center gap-3 px-4 py-3" id={`team-${id}`} data-testid={`team-${id}`}>
       <Avatar initials={PEOPLE[id].initials} />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
@@ -56,6 +57,7 @@ function TeamRow({ id, p }: { id: HousekeeperId; p: Projection }) {
           {plan.map((r) => (
             <span
               key={r.room.id}
+              data-danger={r.end > hk.shiftEnd ? 'over-shift' : undefined}
               className={`absolute top-0 h-full rounded-full ${r.end > hk.shiftEnd ? 'bg-danger' : BAR[p.status]}`}
               style={{ left: pct(r.start), width: `calc(${pct(r.end)} - ${pct(r.start)} - 2px)` }}
             />

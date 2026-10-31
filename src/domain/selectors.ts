@@ -88,6 +88,43 @@ export function roomsNeedingAttention(s: Snapshot): number {
   return s.queue.length + lateRooms(s).length
 }
 
+/** "106 can't be ready for the 11:00 arrival": one wording for the inbox and the supervisor summary. */
+function noOneTitle(room: Room): string {
+  return room.arrival != null ? `${room.id} can't be ready for the ${fmt(room.arrival)} arrival` : `${room.id} can't be finished before shift end`
+}
+
+/** Owned rooms on track to be late, as inbox items (informational: rule 1, the supervisor can't move them). */
+function lateItems(s: Snapshot): (InboxItem & { housekeeperId: HousekeeperId })[] {
+  const out: (InboxItem & { housekeeperId: HousekeeperId })[] = []
+  for (const id of HOUSEKEEPER_IDS) {
+    const hk = s.housekeepers[id]
+    const plan = timeline(s, id)
+    const overShift = plan.filter((p) => p.end > hk.shiftEnd)
+    if (overShift.length) {
+      out.push({
+        id: `late-${id}`,
+        housekeeperId: id,
+        title: `${firstName(id)} on track to finish ${fmt(plan.at(-1)!.end)}`,
+        subtitle: `${overShift.map((p) => p.room.id).join(', ')} at risk · shift ends ${fmt(hk.shiftEnd)}`,
+        at: s.now,
+      })
+    }
+    for (const p of plan) {
+      if (p.end <= hk.shiftEnd && p.room.arrival != null && p.end > p.room.arrival) {
+        out.push({
+          id: `arrival-${p.room.id}`,
+          housekeeperId: id,
+          roomId: p.room.id,
+          title: `${p.room.id} won't be ready for the ${fmt(p.room.arrival)} arrival`,
+          subtitle: `On ${firstName(id)}'s list · done ${fmt(p.end)}`,
+          at: s.now,
+        })
+      }
+    }
+  }
+  return out
+}
+
 export function inbox(s: Snapshot): Inbox {
   const urgent: InboxItem[] = []
   const decision: InboxItem[] = []
@@ -99,10 +136,7 @@ export function inbox(s: Snapshot): Inbox {
       urgent.push({
         id: `noone-${room.id}`,
         roomId: room.id,
-        title:
-          room.arrival != null
-            ? `${room.id} can't be ready for the ${fmt(room.arrival)} arrival`
-            : `${room.id} can't be finished before shift end`,
+        title: noOneTitle(room),
         subtitle: 'No one can finish it in time. Let the front desk know.',
         at: room.queuedAt ?? s.now,
       })
@@ -118,30 +152,7 @@ export function inbox(s: Snapshot): Inbox {
   }
 
   // Owned rooms on track to be late (informational: rule 1, the supervisor can't move them).
-  for (const id of HOUSEKEEPER_IDS) {
-    const hk = s.housekeepers[id]
-    const plan = timeline(s, id)
-    const overShift = plan.filter((p) => p.end > hk.shiftEnd)
-    if (overShift.length) {
-      urgent.push({
-        id: `late-${id}`,
-        title: `${firstName(id)} on track to finish ${fmt(plan.at(-1)!.end)}`,
-        subtitle: `${overShift.map((p) => p.room.id).join(', ')} at risk · shift ends ${fmt(hk.shiftEnd)}`,
-        at: s.now,
-      })
-    }
-    for (const p of plan) {
-      if (p.end <= hk.shiftEnd && p.room.arrival != null && p.end > p.room.arrival) {
-        urgent.push({
-          id: `arrival-${p.room.id}`,
-          roomId: p.room.id,
-          title: `${p.room.id} won't be ready for the ${fmt(p.room.arrival)} arrival`,
-          subtitle: `On ${firstName(id)}'s list · done ${fmt(p.end)}`,
-          at: s.now,
-        })
-      }
-    }
-  }
+  for (const { housekeeperId: _hk, ...item } of lateItems(s)) urgent.push(item)
 
   const info: InboxItem[] = []
   for (const e of [...s.events].reverse()) {
@@ -162,6 +173,70 @@ export function inbox(s: Snapshot): Inbox {
   }
 
   return { urgent, decision, info }
+}
+
+/** Kinds in the supervisor summary, in priority order. */
+export type AttentionKind = 'cant' | 'late' | 'assign' | 'waiting' | 'info'
+
+export interface AttentionRow {
+  id: string
+  kind: AttentionKind
+  title: string
+  subtitle?: string
+  /** The room this row is about (can't be done, to assign, waiting on a fix). */
+  roomId?: string
+  /** Whose day is running late. */
+  housekeeperId?: HousekeeperId
+}
+
+export interface Attention {
+  /** = roomsNeedingAttention(). */
+  total: number
+  /** Rooms per kind; cant + late + assign + waiting = total. */
+  counts: Record<Exclude<AttentionKind, 'info'>, number>
+  rows: AttentionRow[]
+}
+
+/**
+ * The supervisor's one summary list (rule 7: grouped by priority, never a flat feed):
+ * can't be done → running late → to assign → waiting on a fix → for your info.
+ * Same items and wording as inbox(), plus blocked rooms, in one order.
+ */
+export function attention(s: Snapshot): Attention {
+  const items = queue(s)
+  const { info } = inbox(s)
+  const cant = items.filter((i) => i.recommendation?.type === 'no-one')
+  const assign = items.filter((i) => i.recommendation?.type === 'pick')
+  const waiting = items.filter((i) => i.recommendation === null)
+
+  const rows: AttentionRow[] = [
+    ...cant.map(({ room }) => ({ id: `cant-${room.id}`, kind: 'cant' as const, roomId: room.id, title: noOneTitle(room), subtitle: 'Let the front desk know' })),
+    ...lateItems(s).map(({ id, title, subtitle, housekeeperId }) => ({ id, kind: 'late' as const, title, subtitle, housekeeperId })),
+    ...assign.map(({ room, recommendation: rec }) => ({
+      id: `assign-${room.id}`,
+      kind: 'assign' as const,
+      roomId: room.id,
+      title: `${room.id} needs someone`,
+      subtitle: rec?.type === 'pick' ? `Best: ${firstName(rec.housekeeperId)} · done ${fmt(rec.end)}` : undefined,
+    })),
+    ...waiting.map(({ room }) => {
+      const ticket = s.tickets.find((t) => t.id === room.ticketId)
+      return {
+        id: `waiting-${room.id}`,
+        kind: 'waiting' as const,
+        roomId: room.id,
+        title: `${room.id} waiting on a fix`,
+        subtitle: `${ticket ? ISSUE_LABEL[ticket.issue] : 'Broken'} · ${MAINTENANCE_NAME} has the ticket`,
+      }
+    }),
+    ...info.map(({ id, title, subtitle, roomId }) => ({ id: `info-${id}`, kind: 'info' as const, title, subtitle, roomId })),
+  ]
+
+  return {
+    total: roomsNeedingAttention(s),
+    counts: { cant: cant.length, late: lateRooms(s).length, assign: assign.length, waiting: waiting.length },
+    rows,
+  }
 }
 
 /** Next three half-hours strictly after now, dropping any at/after shift end, plus "Later" (= shift end). */

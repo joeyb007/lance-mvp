@@ -26,3 +26,6 @@ dist-ssr
 test-results
 playwright-report
 .claude/worktrees
+
+# Assignment materials (Lance screenshots): kept locally, never committed
+context/

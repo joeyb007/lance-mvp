@@ -10,7 +10,6 @@ Read in this order: the **domain** (where every decision lives), then the **stor
 | `TDD.md` | Problem, demo script (§3), scope + product rules (§4), Problem sheet (§5), scheduling + test list (§7), seed (§8), style (§9), architecture (§10), risks/next (§12) | Single source of truth; agents and reviewers read it before code |
 | `CLAUDE.md` | Commands, layout, how UI talks to state, rules, conventions, learnings | Working agreement for anyone (human or AI) touching the repo |
 | `CHANGES.md` | Per-branch notes from the parallel build (Phase 1) | Audit trail of what each agent built, stubbed, or deviated on |
-| `context/` | Lance screenshots + annotated critique | The input: what we're fixing |
 
 ## `src/domain/`: pure logic, no React
 

@@ -64,7 +64,7 @@ Also: no per-person speed anywhere (durations by room type only). Red only for "
 
 ## Learnings from building this
 
-- **Worktree base commit.** The agent worktree tool created every worktree from the commit at session start (`926e003`, only `context/`), not current `master`. All four agents had to `git reset --hard master` first. **When spawning an agent in a worktree, tell it to reset to `master` and verify `git log` before branching.**
+- **Worktree base commit.** The agent worktree tool created every worktree from the commit at session start (the initial commit, before any app code), not current `master`. All four agents had to `git reset --hard master` first. **When spawning an agent in a worktree, tell it to reset to `master` and verify `git log` before branching.**
 - **Don't `git add -A` from the repo root while agent worktrees exist** under `.claude/worktrees/`: it adds them as embedded repos. They're gitignored now.
 - **Shared primitives must work in their real container.** `BottomSheet` was `absolute inset-0` inside a scrolling `<main>`; both feature agents worked around it separately. Fixed once, at the source (portal into `#phone-frame`).
 - **`&&` chains hide skipped steps.** A failed `git rm`/`grep` silently skipped later edits twice; check each step's effect.

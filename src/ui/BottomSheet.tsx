@@ -1,6 +1,10 @@
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
-/** Bottom sheet with grabber + ✕. Rendered inside the phone frame (positioned absolutely). */
+/**
+ * Bottom sheet with grabber + ✕. Portaled into #phone-frame so it covers the visible screen
+ * even when opened from inside a scrolled <main>.
+ */
 export function BottomSheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title?: ReactNode; children: ReactNode }) {
   useEffect(() => {
     if (!open) return
@@ -10,7 +14,8 @@ export function BottomSheet({ open, onClose, title, children }: { open: boolean;
   }, [open, onClose])
 
   if (!open) return null
-  return (
+  const target = document.getElementById('phone-frame') ?? document.body
+  return createPortal(
     <div className="absolute inset-0 z-40 flex flex-col justify-end" role="dialog" aria-modal="true">
       <button aria-label="Close" className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative max-h-[88%] overflow-y-auto rounded-t-[22px] bg-white px-5 pb-8 pt-2 shadow-2xl animate-[sheet-up_180ms_ease-out]">
@@ -23,6 +28,7 @@ export function BottomSheet({ open, onClose, title, children }: { open: boolean;
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    target,
   )
 }

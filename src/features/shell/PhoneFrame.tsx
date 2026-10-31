@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 export function PhoneFrame({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-dvh w-full justify-center bg-chip sm:items-center sm:py-6">
-      <div className="relative flex h-full w-full max-w-[430px] flex-col overflow-hidden bg-white font-sans sm:max-h-[900px] sm:rounded-[36px] sm:border sm:border-line sm:shadow-2xl">
+      <div id="phone-frame" className="relative flex h-full w-full max-w-[430px] flex-col overflow-hidden bg-white font-sans sm:max-h-[900px] sm:rounded-[36px] sm:border sm:border-line sm:shadow-2xl">
         {children}
       </div>
     </div>

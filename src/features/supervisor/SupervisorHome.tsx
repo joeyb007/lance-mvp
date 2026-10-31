@@ -11,16 +11,11 @@ export function SupervisorHome() {
   const queueRef = useRef<HTMLDivElement>(null)
 
   const seeQueue = () => queueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  const seeRoom = (roomId: string) => {
-    const card = document.getElementById(`queue-${roomId}`)
-    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    else seeQueue()
-  }
 
   return (
     <div data-testid="supervisor">
       <Headline />
-      <Inbox onSeeQueue={seeQueue} onSeeRoom={seeRoom} />
+      <Inbox onSeeQueue={seeQueue} />
       <AssignQueue ref={queueRef} />
       <Team />
     </div>

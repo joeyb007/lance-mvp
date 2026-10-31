@@ -2,8 +2,7 @@ import { cleanLabel } from '../../domain/format'
 import { options, recommendation } from '../../domain/selectors'
 import { PEOPLE } from '../../domain/seed'
 import { useStore } from '../../state/store'
-import { Avatar, Pill, RoomChip } from '../../ui'
-import { FrameSheet } from './FrameSheet'
+import { Avatar, BottomSheet, Pill, RoomChip } from '../../ui'
 
 /**
  * "Who takes {room}?": every housekeeper with their would-be slot, in the selector's order.
@@ -18,7 +17,7 @@ export function WhoTakesSheet({ roomId, onClose }: { roomId: string | null; onCl
   const recommendedId = rec?.type === 'pick' ? rec.housekeeperId : undefined
 
   return (
-    <FrameSheet open={open} onClose={onClose} title={room ? `Who takes ${room.id}?` : undefined}>
+    <BottomSheet open={open} onClose={onClose} title={room ? `Who takes ${room.id}?` : undefined}>
       {open && room && (
         <div data-testid="who-takes-sheet">
           <div className="mb-3 flex items-center gap-3">
@@ -64,6 +63,6 @@ export function WhoTakesSheet({ roomId, onClose }: { roomId: string | null; onCl
           <p className="mt-3 text-[13px] text-muted">The room goes to the end of their list.</p>
         </div>
       )}
-    </FrameSheet>
+    </BottomSheet>
   )
 }

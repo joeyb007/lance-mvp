@@ -5,7 +5,7 @@ import { useStore } from '../../state/store'
 import { Card, Icon, Section } from '../../ui'
 
 /** Updates inbox, grouped by priority (rule 7): Urgent → Needs a decision → For your info. Never a flat feed. */
-export function Inbox({ onSeeQueue, onSeeRoom }: { onSeeQueue: () => void; onSeeRoom: (roomId: string) => void }) {
+export function Inbox({ onSeeQueue }: { onSeeQueue: () => void }) {
   const { state } = useStore()
   const { urgent, decision, info } = inbox(state)
 
@@ -31,40 +31,24 @@ export function Inbox({ onSeeQueue, onSeeRoom }: { onSeeQueue: () => void; onSee
           )}
         </Card>
 
+        {/* Needs a decision: one line, not a second copy of the queue that sits right below. */}
         <Card className="overflow-hidden" data-testid="inbox-decision">
-          <GroupHeader
-            tone="ink"
-            icon="list"
-            title="Needs a decision"
-            count={decision.length}
-            right={
-              decision.length > 0 && (
-                <button onClick={onSeeQueue} className="-my-2 -mr-2 flex h-12 items-center gap-1 rounded-full px-3 text-[14px] font-semibold text-accent active:bg-accent-soft">
-                  See queue <span aria-hidden>›</span>
-                </button>
-              )
-            }
-          />
           {decision.length === 0 ? (
-            <Empty>Nothing to decide.</Empty>
+            <>
+              <GroupHeader tone="ink" icon="list" title="Needs a decision" count={0} />
+              <Empty>Nothing to decide.</Empty>
+            </>
           ) : (
-            <ul className="divide-y divide-line">
-              {decision.map((item) => (
-                <li key={item.id}>
-                  <button
-                    onClick={() => (item.roomId ? onSeeRoom(item.roomId) : onSeeQueue())}
-                    className="flex min-h-12 w-full items-center gap-2 px-4 py-2.5 text-left active:bg-chip"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <ItemText item={item} />
-                    </span>
-                    <span aria-hidden className="text-muted">
-                      ›
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <button onClick={onSeeQueue} className="flex min-h-14 w-full items-center gap-2 px-4 py-2 text-left active:bg-chip">
+              <Icon name="list" size={18} className="shrink-0" />
+              <span className="flex-1 text-[15px] font-bold">
+                Needs a decision <span className="ml-1 font-semibold text-muted">{decision.length}</span>
+                <span className="block text-[13px] font-medium text-muted">
+                  {decision.length === 1 ? '1 room' : `${decision.length} rooms`} to assign
+                </span>
+              </span>
+              <span className="text-[14px] font-semibold text-accent">See queue ›</span>
+            </button>
           )}
         </Card>
 

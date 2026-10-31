@@ -1,5 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import type { ReactNode } from 'react'
 import { ISSUE_LABEL } from '../../domain/format'
 import { SUPERVISOR_NAME } from '../../domain/seed'
 import type { DndChip, Issue } from '../../domain/types'
@@ -30,19 +29,10 @@ function Chip({ onClick, children }: { onClick: () => void; children: ReactNode 
 
 /**
  * The one-step Problem sheet (TDD §5): always 2 taps, Problem → option.
- * Rendered through a portal into the phone frame so it covers the whole screen and isn't
- * pinned to the top of the scrolling <main> (BottomSheet is `absolute inset-0`).
+ * (The shared BottomSheet portals into the phone frame, so it covers the screen from a scrolled list.)
  */
 export function ProblemSheet({ roomId, chips, onClose, onDnd, onBroken, onDeclined }: Props) {
-  const anchor = useRef<HTMLSpanElement>(null)
-  const [frame, setFrame] = useState<HTMLElement | null>(null)
-
-  useLayoutEffect(() => {
-    // <main> sits directly inside the phone frame (relative, overflow-hidden).
-    setFrame(anchor.current?.closest('main')?.parentElement ?? null)
-  }, [])
-
-  const sheet = (
+  return (
     <BottomSheet open={roomId != null} onClose={onClose} title={`${roomId} · What's the problem?`}>
       <h3 className="mb-2 text-[14px] font-semibold">Do not disturb · come back at</h3>
       <div className="grid grid-cols-4 gap-2">
@@ -69,12 +59,5 @@ export function ProblemSheet({ roomId, chips, onClose, onDnd, onBroken, onDeclin
         Guest declined service
       </Button>
     </BottomSheet>
-  )
-
-  return (
-    <>
-      <span ref={anchor} hidden />
-      {frame ? createPortal(sheet, frame) : sheet}
-    </>
   )
 }

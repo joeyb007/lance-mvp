@@ -9,13 +9,15 @@ interface Props {
   shiftEnd: Minutes
   /** Another room on this list is in progress: Start is disabled (the reducer enforces it too). */
   busy: boolean
+  /** The next room to do: the only card whose Start is the black primary pill. */
+  next: boolean
   onStart: () => void
   onDone: () => void
   onProblem: () => void
 }
 
 /** One open room on "Assigned to you". Start → Done, plus Problem on every open card. */
-export function RoomCard({ plan, now, shiftEnd, busy, onStart, onDone, onProblem }: Props) {
+export function RoomCard({ plan, now, shiftEnd, busy, next, onStart, onDone, onProblem }: Props) {
   const { room, start, end, waiting } = plan
   const inProgress = room.status === 'in_progress'
   const tags = roomTags(plan, now, shiftEnd)
@@ -62,7 +64,7 @@ export function RoomCard({ plan, now, shiftEnd, busy, onStart, onDone, onProblem
               Done
             </Button>
           ) : (
-            <Button className="flex-1" onClick={onStart} disabled={busy || waiting}>
+            <Button variant={next ? 'primary' : 'secondary'} className="flex-1" onClick={onStart} disabled={busy || waiting}>
               Start
             </Button>
           )}

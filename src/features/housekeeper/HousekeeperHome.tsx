@@ -19,6 +19,8 @@ export function HousekeeperHome({ housekeeperId }: { housekeeperId: HousekeeperI
   const projection = projections(state)[housekeeperId]
   const shiftEnd = state.housekeepers[housekeeperId].shiftEnd
   const busy = plan.some((p) => p.room.status === 'in_progress')
+  // One loud button per screen: only the next startable room gets the black Start (any room can still be started).
+  const nextId = busy ? null : plan.find((p) => p.room.status === 'todo' && !p.waiting)?.room.id
 
   // Only open the sheet for a room that is still on this person's list (survives role switches / undo).
   const sheetRoom = plan.some((p) => p.room.id === problemId) ? problemId : null
@@ -55,6 +57,7 @@ export function HousekeeperHome({ housekeeperId }: { housekeeperId: HousekeeperI
                 now={state.now}
                 shiftEnd={shiftEnd}
                 busy={busy}
+                next={p.room.id === nextId}
                 onStart={() => dispatch({ type: 'start', roomId: p.room.id })}
                 onDone={() => dispatch({ type: 'complete', roomId: p.room.id })}
                 onProblem={() => setProblemId(p.room.id)}

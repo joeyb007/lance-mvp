@@ -48,9 +48,17 @@ function queueLabel(s: Snapshot, room: Room): string {
     }
     case 'broken': {
       const ticket = s.tickets.find((t) => t.id === room.ticketId)
-      const issue = ticket ? ISSUE_LABEL[ticket.issue] : 'Broken'
+      const issue = ticket ? (ticket.note ?? ISSUE_LABEL[ticket.issue]) : 'Broken'
       return room.blocked ? `Waiting on maintenance · ${issue}` : `Fixed · ${issue} · ready to assign`
     }
+    case 'handoff': {
+      const shiftEnd = room.flaggedBy ? s.housekeepers[room.flaggedBy].shiftEnd : null
+      return shiftEnd != null ? `${who} handed off · would run past ${fmt(shiftEnd)}` : `${who} handed off`
+    }
+    case 'no_access':
+      return `${who} can't get in`
+    case 'other':
+      return room.note ? `${who}: “${room.note}”` : `${who} flagged`
     default:
       return 'Unassigned'
   }

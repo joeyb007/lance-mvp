@@ -13,7 +13,7 @@ export type Issue = 'light' | 'leak' | 'ac' | 'tv' | 'other'
 export type RoomStatus = 'todo' | 'in_progress' | 'done' | 'declined'
 
 /** Why a room is sitting in the assignment queue. */
-export type QueueReason = 'unassigned' | 'dnd' | 'broken'
+export type QueueReason = 'unassigned' | 'dnd' | 'broken' | 'handoff' | 'no_access' | 'other'
 
 export interface Room {
   id: string
@@ -41,6 +41,8 @@ export interface Room {
   queuedAt?: Minutes
   /** Who flagged it (for "Rosa flagged" / declines). */
   flaggedBy?: HousekeeperId
+  /** Her own words, from "Other…" on the Problem sheet (the only typed input). Max 80 chars. */
+  note?: string
 }
 
 export interface Housekeeper {
@@ -62,6 +64,8 @@ export interface Ticket {
   raisedAt: Minutes
   assignee: 'sam'
   fixedAt?: Minutes
+  /** Her own words when the issue is 'other' (Something's broken → Other…). */
+  note?: string
 }
 
 /** Explicit event log. Feeds the inbox's "For your info" group. */
@@ -69,9 +73,13 @@ export type DomainEvent =
   | { id: string; at: Minutes; kind: 'dnd_absorbed'; roomId: string; by: HousekeeperId; until: Minutes }
   | { id: string; at: Minutes; kind: 'dnd_escalated'; roomId: string; by: HousekeeperId; until: Minutes }
   | { id: string; at: Minutes; kind: 'declined'; roomId: string; by: HousekeeperId }
-  | { id: string; at: Minutes; kind: 'ticket_raised'; roomId: string; by: HousekeeperId; ticketId: string; issue: Issue }
+  | { id: string; at: Minutes; kind: 'ticket_raised'; roomId: string; by: HousekeeperId; ticketId: string; issue: Issue; note?: string }
   | { id: string; at: Minutes; kind: 'ticket_fixed'; roomId: string; ticketId: string }
   | { id: string; at: Minutes; kind: 'assigned'; roomId: string; to: HousekeeperId }
+  /** The owner sent a room that would run past her shift end to the queue (available now). */
+  | { id: string; at: Minutes; kind: 'handed_off'; roomId: string; by: HousekeeperId }
+  /** "Can't get in" / "Other…": straight to the queue, available now. */
+  | { id: string; at: Minutes; kind: 'escalated'; roomId: string; by: HousekeeperId; reason: 'no_access' | 'other'; note?: string }
 
 export interface Toast {
   /** Increments every time, so the UI can re-show the same text. */
@@ -105,7 +113,14 @@ export type Action =
   | { type: 'complete'; roomId: string }
   | { type: 'flag'; roomId: string; reason: 'dnd'; until: Minutes }
   | { type: 'flag'; roomId: string; reason: 'declined' }
-  | { type: 'flag'; roomId: string; reason: 'broken'; issue: Issue }
+  | { type: 'flag'; roomId: string; reason: 'broken'; issue: Exclude<Issue, 'other'> }
+  /** Something's broken → Other…: a ticket with her note. Rejected when the trimmed note is empty. */
+  | { type: 'flag'; roomId: string; reason: 'broken'; issue: 'other'; note: string }
+  | { type: 'flag'; roomId: string; reason: 'no_access' }
+  /** The only typed input in the app. Rejected when the trimmed note is empty; capped at 80 chars. */
+  | { type: 'flag'; roomId: string; reason: 'other'; note: string }
+  /** Owner hands off a todo room whose planned end is after her shift end → queue, available now. */
+  | { type: 'handOff'; roomId: string }
   | { type: 'assign'; roomId: string; housekeeperId: HousekeeperId }
   | { type: 'assignAll' }
   | { type: 'undo' }
@@ -146,7 +161,7 @@ export interface QueueItem {
   room: Room
   /** null when blocked (waiting on maintenance). */
   recommendation: Recommendation | null
-  /** "Unassigned" · "Rosa flagged · DND until 11:30" · "Waiting on maintenance · Light" */
+  /** "Unassigned" · "Rosa flagged · DND until 11:30" · "Rosa handed off · would run past 1:00" · "Waiting on maintenance · Light" */
   label: string
 }
 

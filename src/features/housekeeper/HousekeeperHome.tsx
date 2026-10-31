@@ -22,6 +22,11 @@ export function HousekeeperHome({ housekeeperId }: { housekeeperId: HousekeeperI
   // One loud button per screen: only the next startable room gets the black Start (any room can still be started).
   const nextId = busy ? null : plan.find((p) => p.room.status === 'todo' && !p.waiting)?.room.id
 
+  // Rooms she can hand off: still to do and planned to end after her shift end (the reducer checks the same).
+  const canHandOff = (p: (typeof plan)[number]) => p.room.status === 'todo' && p.end > shiftEnd
+  const handOffIds = plan.filter(canHandOff).map((p) => p.room.id)
+  const handOff = (roomId: string) => dispatch({ type: 'handOff', roomId })
+
   // Only open the sheet for a room that is still on this person's list (survives role switches / undo).
   const sheetRoom = plan.some((p) => p.room.id === problemId) ? problemId : null
 
@@ -35,11 +40,13 @@ export function HousekeeperHome({ housekeeperId }: { housekeeperId: HousekeeperI
     <div className="pb-8 pt-1">
       {plan.length > 0 && (
         <div className="px-5 pb-5">
-          <SummaryLine projection={projection} shiftEnd={shiftEnd} />
+          <SummaryLine projection={projection} shiftEnd={shiftEnd} handOffIds={handOffIds} onHandOff={handOff} />
         </div>
       )}
 
-      <Section title="Assigned to you" count={plan.length}>
+      <Section title="Your rooms · in order">
+        {/* The order is calculated (seed lists are pre-sorted); say so, without numbering the cards. */}
+        <p className="-mt-1.5 mb-3 text-[13px] text-muted">guest arrivals first, then by floor</p>
         {plan.length === 0 ? (
           <Card className="flex flex-col items-center px-6 py-8 text-center" data-testid="empty">
             <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent-soft text-accent">
@@ -61,6 +68,7 @@ export function HousekeeperHome({ housekeeperId }: { housekeeperId: HousekeeperI
                 onStart={() => dispatch({ type: 'start', roomId: p.room.id })}
                 onDone={() => dispatch({ type: 'complete', roomId: p.room.id })}
                 onProblem={() => setProblemId(p.room.id)}
+                onHandOff={canHandOff(p) ? () => handOff(p.room.id) : undefined}
               />
             ))}
           </ul>

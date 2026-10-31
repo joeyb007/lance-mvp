@@ -110,6 +110,23 @@ function flag(d: Draft, action: Extract<Action, { type: 'flag' }>): boolean {
   return true
 }
 
+/** The owner sends a room she can't finish before her shift ends to the queue. Available now (no availableAt). */
+function handOff(d: Draft, roomId: string): boolean {
+  const room = d.rooms[roomId]
+  const owner = room?.ownerId
+  if (!room || !owner || room.status !== 'todo') return false
+  const hk = d.housekeepers[owner]
+  const planned = timeline(d, owner).find((p) => p.room.id === room.id)
+  if (!planned || planned.end <= hk.shiftEnd) return false
+
+  removeFromList(d, owner, room.id)
+  delete room.availableAt
+  toQueue(d, room, 'handoff', owner)
+  log(d, { kind: 'handed_off', roomId: room.id, by: owner })
+  toast(d, `${room.id} handed off`, `Sent to ${SUPERVISOR_NAME} · would run past ${fmt(hk.shiftEnd)}`)
+  return true
+}
+
 function assignAll(d: Draft): boolean {
   const given: { roomId: string; to: HousekeeperId }[] = []
   for (const room of queueOrder(d)) {
@@ -209,6 +226,9 @@ export function reducer(state: State, action: Action): State {
 
     case 'flag':
       return apply(state, (d) => flag(d, action), 'undoable')
+
+    case 'handOff':
+      return apply(state, (d) => handOff(d, action.roomId), 'undoable')
 
     case 'assign':
       return apply(

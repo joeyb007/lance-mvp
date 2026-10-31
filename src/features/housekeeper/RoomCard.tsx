@@ -14,10 +14,12 @@ interface Props {
   onStart: () => void
   onDone: () => void
   onProblem: () => void
+  /** Set when this room is planned to end after her shift end and can be handed off. */
+  onHandOff?: () => void
 }
 
-/** One open room on "Assigned to you". Start → Done, plus Problem on every open card. */
-export function RoomCard({ plan, now, shiftEnd, busy, next, onStart, onDone, onProblem }: Props) {
+/** One open room on "Your rooms". Start → Done, Problem on every open card, Hand off when it runs past shift end. */
+export function RoomCard({ plan, now, shiftEnd, busy, next, onStart, onDone, onProblem, onHandOff }: Props) {
   const { room, start, end, waiting } = plan
   const inProgress = room.status === 'in_progress'
   const tags = roomTags(plan, now, shiftEnd)
@@ -41,20 +43,32 @@ export function RoomCard({ plan, now, shiftEnd, busy, next, onStart, onDone, onP
           <div className="min-w-0 flex-1">
             <div className="text-[16px] font-semibold leading-snug">{cleanLabel(room)}</div>
             {!inProgress && (
-              <div className="text-[13px] text-muted tabular-nums">
+              <div className="mt-0.5 flex items-center gap-2 text-[13px] text-muted tabular-nums">
+                {next && (
+                  <span data-testid="next">
+                    <Pill tone="dark">Next</Pill>
+                  </span>
+                )}
                 Planned {fmt(start)}–{fmt(end)}
               </div>
             )}
           </div>
         </div>
 
-        {tags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {tags.map((t) => (
-              <Pill key={t.text} tone={t.tone}>
-                {t.text}
-              </Pill>
-            ))}
+        {(tags.length > 0 || onHandOff) && (
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+              {tags.map((t) => (
+                <Pill key={t.text} tone={t.tone}>
+                  {t.text}
+                </Pill>
+              ))}
+            </div>
+            {onHandOff && (
+              <Button variant="secondary" className="shrink-0 px-4" onClick={onHandOff} data-testid={`handoff-${room.id}`}>
+                Hand off
+              </Button>
+            )}
           </div>
         )}
 

@@ -51,6 +51,10 @@ function queueLabel(s: Snapshot, room: Room): string {
       const issue = ticket ? ISSUE_LABEL[ticket.issue] : 'Broken'
       return room.blocked ? `Waiting on maintenance · ${issue}` : `Fixed · ${issue} · ready to assign`
     }
+    case 'handoff': {
+      const shiftEnd = room.flaggedBy ? s.housekeepers[room.flaggedBy].shiftEnd : null
+      return shiftEnd != null ? `${who} handed off · would run past ${fmt(shiftEnd)}` : `${who} handed off`
+    }
     default:
       return 'Unassigned'
   }

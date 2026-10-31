@@ -13,7 +13,7 @@ export type Issue = 'light' | 'leak' | 'ac' | 'tv' | 'other'
 export type RoomStatus = 'todo' | 'in_progress' | 'done' | 'declined'
 
 /** Why a room is sitting in the assignment queue. */
-export type QueueReason = 'unassigned' | 'dnd' | 'broken'
+export type QueueReason = 'unassigned' | 'dnd' | 'broken' | 'handoff'
 
 export interface Room {
   id: string
@@ -72,6 +72,8 @@ export type DomainEvent =
   | { id: string; at: Minutes; kind: 'ticket_raised'; roomId: string; by: HousekeeperId; ticketId: string; issue: Issue }
   | { id: string; at: Minutes; kind: 'ticket_fixed'; roomId: string; ticketId: string }
   | { id: string; at: Minutes; kind: 'assigned'; roomId: string; to: HousekeeperId }
+  /** The owner sent a room that would run past her shift end to the queue (available now). */
+  | { id: string; at: Minutes; kind: 'handed_off'; roomId: string; by: HousekeeperId }
 
 export interface Toast {
   /** Increments every time, so the UI can re-show the same text. */
@@ -106,6 +108,8 @@ export type Action =
   | { type: 'flag'; roomId: string; reason: 'dnd'; until: Minutes }
   | { type: 'flag'; roomId: string; reason: 'declined' }
   | { type: 'flag'; roomId: string; reason: 'broken'; issue: Issue }
+  /** Owner hands off a todo room whose planned end is after her shift end → queue, available now. */
+  | { type: 'handOff'; roomId: string }
   | { type: 'assign'; roomId: string; housekeeperId: HousekeeperId }
   | { type: 'assignAll' }
   | { type: 'undo' }
@@ -146,7 +150,7 @@ export interface QueueItem {
   room: Room
   /** null when blocked (waiting on maintenance). */
   recommendation: Recommendation | null
-  /** "Unassigned" · "Rosa flagged · DND until 11:30" · "Waiting on maintenance · Light" */
+  /** "Unassigned" · "Rosa flagged · DND until 11:30" · "Rosa handed off · would run past 1:00" · "Waiting on maintenance · Light" */
   label: string
 }
 

@@ -16,8 +16,11 @@ describe('housekeeper card tags', () => {
     expect(texts(s, 'maya', '305')).toEqual(['Available at 12:00'])
   })
 
-  it("Rosa's 107 at load runs past 1:00", () => {
-    expect(texts(seedState(), 'rosa', '107')).toEqual(['Runs past 1:00'])
+  it("Rosa's 107 at load runs past 1:00 (amber: she can hand it off, not an alarm)", () => {
+    const s = seedState()
+    expect(texts(s, 'rosa', '107')).toEqual(['Runs past 1:00'])
+    const p = roomsFor(s, 'rosa').find((x) => x.room.id === '107')!
+    expect(roomTags(p, s.now, s.housekeepers.rosa.shiftEnd)[0].tone).toBe('amber')
   })
 
   it('Priya gets 107 from Jordan, available 11:30 → ready now after skipping to 11:30', () => {

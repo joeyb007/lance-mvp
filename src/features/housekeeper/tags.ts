@@ -15,7 +15,7 @@ export interface Tag {
  * - handed over, now available: "From Jordan · ready now" (had a come-back time) or "From Jordan"
  * - own room whose come-back time has passed: "Ready now"
  * - arrival: "Guest arrives 11:00" (red when under an hour away)
- * - late: "Late for 11:00 arrival" or "Runs past 1:00"
+ * - late: "Late for 11:00 arrival" (red) or "Runs past 1:00" (amber: she can hand it off)
  */
 export function roomTags(p: PlannedRoom, now: Minutes, shiftEnd: Minutes): Tag[] {
   const { room } = p
@@ -37,7 +37,8 @@ export function roomTags(p: PlannedRoom, now: Minutes, shiftEnd: Minutes): Tag[]
 
   if (p.late) {
     if (room.arrival != null && p.end > room.arrival) tags.push({ text: `Late for ${fmt(room.arrival)} arrival`, tone: 'red' })
-    else if (p.end > shiftEnd) tags.push({ text: `Runs past ${fmt(shiftEnd)}`, tone: 'red' })
+    // Amber, not red: she can act on it (Hand off). Red stays for a missed guest arrival.
+    else if (p.end > shiftEnd) tags.push({ text: `Runs past ${fmt(shiftEnd)}`, tone: 'amber' })
   }
   return tags
 }

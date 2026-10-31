@@ -1,13 +1,17 @@
 // Housekeeper "My work" (worktree A). Everything comes from selectors; nothing is scheduled or sorted here.
 import { useCallback, useState } from 'react'
 import { dndChips, doneFor, projections, roomsFor } from '../../domain/selectors'
-import type { HousekeeperId, Issue } from '../../domain/types'
+import type { Action, HousekeeperId } from '../../domain/types'
 import { useStore } from '../../state/store'
 import { Card, Icon, Section } from '../../ui'
 import { DoneToday } from './DoneToday'
 import { ProblemSheet } from './ProblemSheet'
 import { RoomCard } from './RoomCard'
 import { SummaryLine } from './SummaryLine'
+
+type FlagAction = Extract<Action, { type: 'flag' }>
+/** Every flag variant minus type/roomId (distributes over the union so each reason keeps its own fields). */
+type FlagExtra = FlagAction extends infer A ? (A extends FlagAction ? Omit<A, 'type' | 'roomId'> : never) : never
 
 export function HousekeeperHome({ housekeeperId }: { housekeeperId: HousekeeperId }) {
   const { state, dispatch } = useStore()
@@ -30,7 +34,7 @@ export function HousekeeperHome({ housekeeperId }: { housekeeperId: HousekeeperI
   // Only open the sheet for a room that is still on this person's list (survives role switches / undo).
   const sheetRoom = plan.some((p) => p.room.id === problemId) ? problemId : null
 
-  const flag = (extra: { reason: 'dnd'; until: number } | { reason: 'broken'; issue: Issue } | { reason: 'declined' }) => {
+  const flag = (extra: FlagExtra) => {
     if (!sheetRoom) return
     dispatch({ type: 'flag', roomId: sheetRoom, ...extra })
     setProblemId(null)
@@ -78,12 +82,16 @@ export function HousekeeperHome({ housekeeperId }: { housekeeperId: HousekeeperI
       <DoneToday rooms={done} />
 
       <ProblemSheet
+        key={sheetRoom ?? 'closed'}
         roomId={sheetRoom}
         chips={dndChips(state, housekeeperId)}
         onClose={closeSheet}
         onDnd={(until) => flag({ reason: 'dnd', until })}
         onBroken={(issue) => flag({ reason: 'broken', issue })}
+        onBrokenOther={(note) => flag({ reason: 'broken', issue: 'other', note })}
         onDeclined={() => flag({ reason: 'declined' })}
+        onNoAccess={() => flag({ reason: 'no_access' })}
+        onOther={(note) => flag({ reason: 'other', note })}
       />
     </div>
   )

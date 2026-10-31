@@ -20,7 +20,7 @@ export function MoreScreen() {
             <Card key={t.id} className="flex items-center gap-3 p-3" data-testid={`ticket-${t.roomId}`}>
               <RoomChip id={t.roomId} />
               <div className="min-w-0 flex-1">
-                <div className="text-[16px] font-semibold">{ISSUE_LABEL[t.issue]}</div>
+                <div className="text-[16px] font-semibold">{t.note ?? ISSUE_LABEL[t.issue]}</div>
                 <div className="text-[13px] text-muted">
                   From {firstName(t.raisedBy)} · {fmt(t.raisedAt)} · to {MAINTENANCE_NAME}
                 </div>

@@ -5,6 +5,13 @@ import { firstName, seedState, SUPERVISOR_NAME, MAINTENANCE_NAME } from './seed'
 import type { Action, DomainEvent, HousekeeperId, Room, Snapshot, State } from './types'
 
 type Draft = Snapshot
+
+/** "Other…" note cap (one short line). */
+export const NOTE_MAX = 80
+/** Toasts show a clipped note so they stay one or two lines; the full note lives on the room / ticket. */
+const TOAST_NOTE_MAX = 40
+const clip = (text: string) => (text.length > TOAST_NOTE_MAX ? `${text.slice(0, TOAST_NOTE_MAX - 1).trimEnd()}…` : text)
+
 /** Return false to reject the action (state unchanged). */
 type Recipe = (d: Draft) => boolean | void
 
@@ -61,6 +68,10 @@ function flag(d: Draft, action: Extract<Action, { type: 'flag' }>): boolean {
   const owner = room?.ownerId
   if (!room || !owner || (room.status !== 'todo' && room.status !== 'in_progress')) return false
   const hk = d.housekeepers[owner]
+  // Typed notes ("Other…" under Can't clean it or Something's broken) must say something.
+  const typed = action.reason === 'other' || (action.reason === 'broken' && action.issue === 'other')
+  const note = typed && 'note' in action ? action.note.trim().slice(0, NOTE_MAX) : ''
+  if (typed && !note) return false
 
   removeFromList(d, owner, room.id)
   room.status = 'todo'
@@ -79,12 +90,25 @@ function flag(d: Draft, action: Extract<Action, { type: 'flag' }>): boolean {
   if (action.reason === 'broken') {
     d.seq += 1
     const ticketId = `t${d.seq}`
-    d.tickets.push({ id: ticketId, roomId: room.id, issue: action.issue, raisedBy: owner, raisedAt: d.now, assignee: 'sam' })
+    d.tickets.push({ id: ticketId, roomId: room.id, issue: action.issue, raisedBy: owner, raisedAt: d.now, assignee: 'sam', ...(note && { note }) })
     room.blocked = true
     room.ticketId = ticketId
     toQueue(d, room, 'broken', owner)
-    log(d, { kind: 'ticket_raised', roomId: room.id, by: owner, ticketId, issue: action.issue })
-    toast(d, `Ticket sent: ${room.id} · ${ISSUE_LABEL[action.issue]}`, `${MAINTENANCE_NAME} is on it · off your list`)
+    log(d, { kind: 'ticket_raised', roomId: room.id, by: owner, ticketId, issue: action.issue, ...(note && { note }) })
+    toast(d, `Ticket sent: ${room.id} · ${note ? clip(note) : ISSUE_LABEL[action.issue]}`, `${MAINTENANCE_NAME} is on it · off your list`)
+    return true
+  }
+
+  if (action.reason === 'no_access' || action.reason === 'other') {
+    toQueue(d, room, action.reason, owner)
+    if (action.reason === 'other') {
+      room.note = note
+      log(d, { kind: 'escalated', roomId: room.id, by: owner, reason: 'other', note })
+      toast(d, `${room.id} sent to ${SUPERVISOR_NAME}`, clip(note))
+    } else {
+      log(d, { kind: 'escalated', roomId: room.id, by: owner, reason: 'no_access' })
+      toast(d, `${room.id} sent to ${SUPERVISOR_NAME}`, `Can't get in · ${SUPERVISOR_NAME} will pick someone`)
+    }
     return true
   }
 

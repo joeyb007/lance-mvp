@@ -95,6 +95,8 @@ test('TDD §3 demo end to end', async ({ page }) => {
   expect(await queueIds()).toEqual(['queue-207'])
   await expect(page.getByTestId('give-207')).toHaveText('Give to Priya')
   await expectAboveTheFold(page, 'give-207')
+  await expect(page.getByTestId('queue')).toContainText('To assign · most urgent first')
+  await expect(page.getByTestId('queue')).toContainText("by guest arrival, then how long it's waited")
   await expect(page.getByTestId('cant-106')).toHaveText("106 · can't be ready for the 11:00 arrival · let the front desk know")
   // Team at load (seed, TDD §8): Maya 5 rooms, 12:40; 305 still hers.
   await expect(page.getByTestId('team-maya')).toContainText('5 rooms left')
@@ -142,10 +144,11 @@ test('TDD §3 demo end to end', async ({ page }) => {
   await expect(page.getByText('done by 12:40')).toBeVisible()
   await shot(page, '01c-maya-305-moved', { tall: true })
 
-  // Step 2: Rosa (red, 1:05), 107 DND 11:30 → doesn't fit → sent to Jordan; Rosa now 12:30.
+  // Step 2: Rosa (amber, 1:05), 107 DND 11:30 → doesn't fit → sent to Jordan; Rosa now 12:30.
   await become(page, 'Rosa Alvarez')
-  await expect(page.getByText(/1:05/).first()).toBeVisible()
-  await shot(page, '02a-rosa-red')
+  await expect(page.getByTestId('summary')).toContainText('On track to finish 1:05 · 5 min over')
+  await expect(page.getByTestId('summary-handoff-107')).toBeVisible()
+  await shot(page, '02a-rosa-amber')
   await page.getByTestId('room-107').getByRole('button', { name: 'Problem' }).click()
   await page.getByRole('dialog').getByRole('button', { name: '11:30', exact: true }).click()
   await expect(toast(page)).toContainText('107 sent to Jordan')
@@ -215,4 +218,78 @@ test('TDD §3 demo end to end', async ({ page }) => {
   await expect(page.getByTestId('room-206')).toContainText('In progress')
   await expect(page.getByText('done · simulated')).toHaveCount(3)
   await shot(page, '06b-priya-after-skip', { tall: true })
+})
+
+// Alternative step 2 (TDD §3): Rosa hands off 107 instead of flagging it; Jordan sees it as its own row; Assign all.
+test('hand-off path: Rosa hands off 107 → Jordan → Assign all', async ({ page }) => {
+  await page.goto('/')
+  await page.getByText('Rosa Alvarez').click()
+  const banner = page.getByTestId('summary')
+  await expect(banner).toContainText('On track to finish 1:05 · 5 min over')
+  await expect(page.getByTestId('room-101').getByTestId('next')).toBeVisible()
+  await expect(page.getByText('Your rooms · in order')).toBeVisible()
+  await expect(page.getByText('guest arrivals first, then by floor')).toBeVisible()
+  await shot(page, 'h1-rosa-runover')
+
+  await page.getByTestId('summary-handoff-107').click()
+  await expect(toast(page)).toContainText('107 handed off')
+  await expect(toast(page)).toContainText('Sent to Jordan · would run past 1:00')
+  await expect(page.getByTestId('room-107')).toHaveCount(0)
+  await expect(banner).toContainText('done by 12:30')
+  await shot(page, 'h2-rosa-handed-off')
+
+  await become(page, 'Jordan Blake')
+  await expect(page.getByTestId('needing-attention')).toHaveText('3')
+  await page.getByTestId('attention-toggle').click()
+  await expect(page.getByTestId('attention-assign-107')).toContainText('Rosa handed off 107')
+  await expect(page.getByTestId('attention-assign-107')).toContainText('Would run past 1:00 · Best: Priya · done 12:28')
+  await expect(page.getByTestId('queue-107')).toContainText('Rosa handed off · would run past 1:00')
+  await shot(page, 'h3-jordan-before-assign-all', { tall: true })
+
+  await page.getByTestId('attention-toggle').click()
+  await page.getByTestId('assign-all').click()
+  await expect(toast(page)).toContainText('2 rooms assigned')
+  await expect(toast(page)).toContainText('207, 107 → Priya')
+  await expect(page.getByTestId('needing-attention')).toHaveText('1')
+  await expect(page.getByTestId('team-priya')).toContainText('12:48')
+  await shot(page, 'h4-jordan-after-assign-all', { tall: true })
+})
+
+// Problem sheet: three sections of 4-column chips; Other… is the only typing.
+test('Problem sheet: chips and Other…', async ({ page }) => {
+  await page.goto('/')
+  await page.getByText('Maya Chen').click()
+  await page.getByTestId('room-302').getByRole('button', { name: 'Problem' }).click()
+  const sheet = page.getByRole('dialog')
+  for (const label of ['Guest asked me to come back', "Something's broken", "Can't clean it"]) await expect(sheet).toContainText(label)
+  await expect(sheet.getByRole('button', { name: 'TV', exact: true })).toHaveCount(0)
+  await expect(sheet.getByRole('button', { name: /Other/ })).toHaveCount(2)
+  const box = await sheet.getByRole('button', { name: 'Light', exact: true }).boundingBox()
+  expect(Math.round(box!.height)).toBe(52)
+  await shot(page, 's1-problem-sheet')
+  await sheet.getByRole('button', { name: /Other/ }).last().click()
+  await expect(sheet).toContainText("Can't clean it · tell Jordan")
+  await expect(sheet.getByRole('button', { name: 'Send' })).toBeDisabled()
+  await sheet.getByRole('textbox').fill('Mini fridge leaking')
+  await shot(page, 's2-problem-other')
+  await sheet.getByRole('button', { name: 'Send' }).click()
+  await expect(toast(page)).toContainText('302 sent to Jordan')
+  await expect(toast(page)).toContainText('Mini fridge leaking')
+})
+
+// Double tap on Start must not complete the room (bug 4: Maya showed 4 rooms / 12:20).
+test('double tap on Start does not complete the room', async ({ page }) => {
+  await page.goto('/')
+  await page.getByText('Maya Chen').click()
+  const start = page.getByTestId('room-305').getByRole('button', { name: 'Start' })
+  // Start adds the "In progress" banner, pushing the row down ~44px: Done ends up under a thumb that tapped low on Start.
+  const { x, y, width, height } = (await start.boundingBox())!
+  const thumb = { x: x + width / 2, y: y + height - 4 }
+  await page.mouse.click(thumb.x, thumb.y)
+  await page.waitForTimeout(150)
+  const done = await page.getByTestId('complete-305').boundingBox()
+  expect(thumb.y).toBeGreaterThanOrEqual(done!.y) // the second tap really lands on Done
+  await page.mouse.click(thumb.x, thumb.y)
+  await expect(page.getByTestId('room-305')).toContainText('In progress')
+  await expect(page.getByTestId('summary')).toContainText('5 rooms left · done by 12:40')
 })

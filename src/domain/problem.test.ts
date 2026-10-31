@@ -48,8 +48,8 @@ describe('Other… with a note', () => {
   it('caps the note at 80 characters', () => {
     const s = run(seedState(), other('x'.repeat(200)))
     expect(s.rooms['302'].note).toHaveLength(80)
-    // The toast shows a clipped note (full note stays on the room)
-    expect(s.toast?.subtitle).toBe(`${'x'.repeat(39)}…`)
+    // The toast carries the (capped) note; <Toast> clamps it to two lines visually.
+    expect(s.toast?.subtitle).toBe('x'.repeat(80))
   })
 
   it('rejects an empty or whitespace note (state unchanged)', () => {

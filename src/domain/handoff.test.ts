@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { seedState } from './seed'
 import { reducer } from './reducer'
-import { projections, queue, roomsFor, roomsNeedingAttention } from './selectors'
+import { attention, projections, queue, roomsFor, roomsNeedingAttention } from './selectors'
 import type { Action, HousekeeperId, State } from './types'
 
 const t = (h: number, m = 0) => h * 60 + m
@@ -62,5 +62,19 @@ describe('handOff', () => {
   it('queue label: "Rosa handed off · would run past 1:00"', () => {
     const s = run(seedState(), handOff('107'))
     expect(queue(s).find((q) => q.room.id === '107')!.label).toBe('Rosa handed off · would run past 1:00')
+  })
+})
+
+describe('merge additions', () => {
+  it('Reset keeps the current person', () => {
+    const s = run(seedState(), { type: 'setRole', personId: 'jordan' }, { type: 'flag', roomId: '305', reason: 'declined' }, { type: 'reset' })
+    expect(s.role).toBe('jordan')
+    expect(s.housekeepers.maya.list).toEqual(seedState().housekeepers.maya.list)
+  })
+  it('summary shows "Rosa handed off 107" as its own row', () => {
+    const s = run(seedState(), { type: 'handOff', roomId: '107' })
+    const row = attention(s).rows.find((r) => r.roomId === '107')!
+    expect(row).toMatchObject({ kind: 'assign', title: 'Rosa handed off 107' })
+    expect(row.subtitle).toBe('Would run past 1:00 · Best: Priya · done 12:28')
   })
 })

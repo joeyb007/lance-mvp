@@ -19,12 +19,12 @@ export function AssignQueue() {
   return (
     <div data-testid="queue">
       <Section
-        title="To assign"
-        count={items.length}
+        title="To assign · most urgent first"
+        subtitle="by guest arrival, then how long it's waited"
         className="pb-6"
         right={
           items.length > 0 && (
-            <Button size="md" onClick={() => dispatch({ type: 'assignAll' })} data-testid="assign-all">
+            <Button size="md" className="shrink-0 whitespace-nowrap" onClick={() => dispatch({ type: 'assignAll' })} data-testid="assign-all">
               Assign all
             </Button>
           )

@@ -21,8 +21,8 @@ export function Toast() {
       <div key={toast.id} className="pointer-events-auto flex w-full items-center gap-3 rounded-[16px] bg-[#111] px-4 py-3 text-white shadow-xl animate-[toast-in_160ms_ease-out]">
         <Icon name="check" size={18} className="shrink-0" />
         <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-semibold leading-tight">{toast.title}</div>
-          {toast.subtitle && <div className="mt-0.5 text-[13px] leading-tight text-white/60">{toast.subtitle}</div>}
+          <div className="line-clamp-2 text-[15px] font-semibold leading-tight">{toast.title}</div>
+          {toast.subtitle && <div className="mt-0.5 line-clamp-2 text-[13px] leading-tight text-white/60">{toast.subtitle}</div>}
         </div>
         {toast.undoable && (
           <button onClick={() => dispatch({ type: 'undo' })} className="h-10 shrink-0 rounded-full px-3 text-[15px] font-semibold text-white underline-offset-2 active:bg-white/10">

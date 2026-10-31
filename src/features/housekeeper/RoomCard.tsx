@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { cleanLabel, fmt } from '../../domain/format'
 import type { Minutes, PlannedRoom } from '../../domain/types'
 import { Button, Pill, RoomChip } from '../../ui'
@@ -18,8 +19,19 @@ interface Props {
   onHandOff?: () => void
 }
 
+/** Done appears exactly where Start was; ignore it briefly so a double tap on Start can't complete the room. */
+const DONE_ARM_MS = 800
+
 /** One open room on "Your rooms". Start → Done, Problem on every open card, Hand off when it runs past shift end. */
 export function RoomCard({ plan, now, shiftEnd, busy, next, onStart, onDone, onProblem, onHandOff }: Props) {
+  const doneArmsAt = useRef(0)
+  const tapStart = () => {
+    doneArmsAt.current = Date.now() + DONE_ARM_MS
+    onStart()
+  }
+  const tapDone = () => {
+    if (Date.now() >= doneArmsAt.current) onDone()
+  }
   const { room, start, end, waiting } = plan
   const inProgress = room.status === 'in_progress'
   const tags = roomTags(plan, now, shiftEnd)
@@ -74,11 +86,11 @@ export function RoomCard({ plan, now, shiftEnd, busy, next, onStart, onDone, onP
 
         <div className="mt-3 flex gap-2">
           {inProgress ? (
-            <Button className="flex-1" onClick={onDone}>
+            <Button className="flex-1" onClick={tapDone} data-testid={`complete-${room.id}`}>
               Done
             </Button>
           ) : (
-            <Button variant={next ? 'primary' : 'secondary'} className="flex-1" onClick={onStart} disabled={busy || waiting}>
+            <Button variant={next ? 'primary' : 'secondary'} className="flex-1" onClick={tapStart} disabled={busy || waiting}>
               Start
             </Button>
           )}

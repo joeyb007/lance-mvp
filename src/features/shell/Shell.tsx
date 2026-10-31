@@ -47,7 +47,7 @@ export function Shell() {
       ) : (
         <>
           <Header initials={person.initials} title={tab === 'more' ? 'More' : isSupervisor ? 'Housekeeping' : 'My work'} onAvatar={() => setPickerOpen(true)} />
-          <main className="relative flex-1 overflow-y-auto" data-testid="screen">
+          <main key={`${state.role}-${tab}`} className="relative flex-1 overflow-y-auto" data-testid="screen">
             {tab === 'more' ? <MoreScreen /> : isSupervisor ? <SupervisorHome /> : <HousekeeperHome housekeeperId={state.role as HousekeeperId} />}
           </main>
           <TabBar tabs={tabs} active={tab} onChange={(id) => setTab(id as TabId)} />

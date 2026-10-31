@@ -172,7 +172,7 @@ export function inbox(s: Snapshot): Inbox {
         info.push({ id: e.id, roomId: e.roomId, at: e.at, title: `${e.roomId} · guest declined service`, subtitle: `Reported by ${firstName(e.by)} · no action needed` })
         break
       case 'ticket_raised':
-        info.push({ id: e.id, roomId: e.roomId, at: e.at, title: `${e.roomId} · ${ISSUE_LABEL[e.issue]} broken`, subtitle: `Ticket sent to ${MAINTENANCE_NAME} · waiting on maintenance` })
+        info.push({ id: e.id, roomId: e.roomId, at: e.at, title: e.note ? `${e.roomId} · ${e.note}` : `${e.roomId} · ${ISSUE_LABEL[e.issue]} broken`, subtitle: `Ticket sent to ${MAINTENANCE_NAME} · waiting on maintenance` })
         break
       case 'ticket_fixed':
         info.push({ id: e.id, roomId: e.roomId, at: e.at, title: `${e.roomId} fixed`, subtitle: 'Back in the queue to assign' })
@@ -220,13 +220,19 @@ export function attention(s: Snapshot): Attention {
   const rows: AttentionRow[] = [
     ...cant.map(({ room }) => ({ id: `cant-${room.id}`, kind: 'cant' as const, roomId: room.id, title: noOneTitle(room), subtitle: 'Let the front desk know' })),
     ...lateItems(s).map(({ id, title, subtitle, housekeeperId }) => ({ id, kind: 'late' as const, title, subtitle, housekeeperId })),
-    ...assign.map(({ room, recommendation: rec }) => ({
-      id: `assign-${room.id}`,
-      kind: 'assign' as const,
-      roomId: room.id,
-      title: `${room.id} needs someone`,
-      subtitle: rec?.type === 'pick' ? `Best: ${firstName(rec.housekeeperId)} · done ${fmt(rec.end)}` : undefined,
-    })),
+    ...assign.map(({ room, recommendation: rec }) => {
+      const best = rec?.type === 'pick' ? `Best: ${firstName(rec.housekeeperId)} · done ${fmt(rec.end)}` : undefined
+      const handedOff = room.queueReason === 'handoff' && room.flaggedBy
+      return {
+        id: `assign-${room.id}`,
+        kind: 'assign' as const,
+        roomId: room.id,
+        title: handedOff ? `${firstName(room.flaggedBy!)} handed off ${room.id}` : `${room.id} needs someone`,
+        subtitle: handedOff
+          ? [`Would run past ${fmt(s.housekeepers[room.flaggedBy!].shiftEnd)}`, best].filter(Boolean).join(' · ')
+          : best,
+      }
+    }),
     ...waiting.map(({ room }) => {
       const ticket = s.tickets.find((t) => t.id === room.ticketId)
       return {
@@ -234,7 +240,7 @@ export function attention(s: Snapshot): Attention {
         kind: 'waiting' as const,
         roomId: room.id,
         title: `${room.id} waiting on a fix`,
-        subtitle: `${ticket ? ISSUE_LABEL[ticket.issue] : 'Broken'} · ${MAINTENANCE_NAME} has the ticket`,
+        subtitle: `${ticket ? (ticket.note ?? ISSUE_LABEL[ticket.issue]) : 'Broken'} · ${MAINTENANCE_NAME} has the ticket`,
       }
     }),
     ...info.map(({ id, title, subtitle, roomId }) => ({ id: `info-${id}`, kind: 'info' as const, title, subtitle, roomId })),

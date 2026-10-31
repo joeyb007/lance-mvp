@@ -8,9 +8,6 @@ type Draft = Snapshot
 
 /** "Other…" note cap (one short line). */
 export const NOTE_MAX = 80
-/** Toasts show a clipped note so they stay one or two lines; the full note lives on the room / ticket. */
-const TOAST_NOTE_MAX = 40
-const clip = (text: string) => (text.length > TOAST_NOTE_MAX ? `${text.slice(0, TOAST_NOTE_MAX - 1).trimEnd()}…` : text)
 
 /** Return false to reject the action (state unchanged). */
 type Recipe = (d: Draft) => boolean | void
@@ -95,7 +92,7 @@ function flag(d: Draft, action: Extract<Action, { type: 'flag' }>): boolean {
     room.ticketId = ticketId
     toQueue(d, room, 'broken', owner)
     log(d, { kind: 'ticket_raised', roomId: room.id, by: owner, ticketId, issue: action.issue, ...(note && { note }) })
-    toast(d, `Ticket sent: ${room.id} · ${note ? clip(note) : ISSUE_LABEL[action.issue]}`, `${MAINTENANCE_NAME} is on it · off your list`)
+    toast(d, `Ticket sent: ${room.id} · ${note || ISSUE_LABEL[action.issue]}`, `${MAINTENANCE_NAME} is on it · off your list`)
     return true
   }
 
@@ -104,7 +101,7 @@ function flag(d: Draft, action: Extract<Action, { type: 'flag' }>): boolean {
     if (action.reason === 'other') {
       room.note = note
       log(d, { kind: 'escalated', roomId: room.id, by: owner, reason: 'other', note })
-      toast(d, `${room.id} sent to ${SUPERVISOR_NAME}`, clip(note))
+      toast(d, `${room.id} sent to ${SUPERVISOR_NAME}`, note) // <Toast> clamps to two lines
     } else {
       log(d, { kind: 'escalated', roomId: room.id, by: owner, reason: 'no_access' })
       toast(d, `${room.id} sent to ${SUPERVISOR_NAME}`, `Can't get in · ${SUPERVISOR_NAME} will pick someone`)
@@ -196,7 +193,8 @@ function advanceClock(d: Draft, minutes: number) {
 export function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'reset':
-      return seedState()
+      // Fresh demo, but stay as whoever is holding the phone.
+      return { ...seedState(), role: state.role }
 
     case 'dismissToast':
       return state.toast ? { ...state, toast: null } : state

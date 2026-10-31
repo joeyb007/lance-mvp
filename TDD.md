@@ -21,6 +21,9 @@ Fixed for free everywhere: plain language, no PMS codes (#1); arrival times on c
 - **DND / come back at {time}:** if it still fits the housekeeper's day *and* the room's own deadline (e.g. ready before the next guest arrives), it stays with them, slotted into their list at the first opening at or after {time}. If it doesn't fit, it leaves their list and goes to the **assignment queue** with a recommendation.
 - **Something broken:** ticket to Sam; the room leaves their list and goes to the queue marked **"Waiting on maintenance"** (no recommendation until it's marked fixed).
 - **Guest declined:** leaves their list; Jordan is informed; nothing to assign.
+- **Can't get in:** leaves their list → queue ("Rosa can't get in") with a recommendation, like a DND that doesn't fit.
+- **Other… (the only typing):** under *Something's broken* it raises a ticket with her note (room waits on maintenance); under *Can't clean it* the room goes to the queue with her note as the reason ("Maya: “Mini fridge leaking”").
+- **Hand off (runover):** any not-started room planned to end after the housekeeper's shift end gets a one-tap **Hand off** (on the card and in her amber banner: "On track to finish 1:05 · 5 min over · Hand off 107"). The room goes to the queue ("Rosa handed off · would run past 1:00"), toast with Undo. No auto-return at shift end (write-up only).
 
 **The supervisor has two places, not one long feed:**
 1. **Summary line** (the inbox): one line, **collapsed by default**: "3 need attention · ● 1 can't be done · ● 1 late · 1 to assign". Tap it and it expands into **one list in priority order**, so it's never a heap to scroll:
@@ -37,7 +40,7 @@ Fixed for free everywhere: plain language, no PMS codes (#1); arrival times on c
 
 0. **At load, before anyone taps:** Jordan's summary line already reads **"3 need attention · ● 1 can't be done · ● 1 late · 1 to assign"** (106, 107, 207). Tapped open: "106 can't be ready for the 11:00 arrival" → "Rosa on track to finish 1:05 · 107 at risk" → "207 needs someone". **To assign** starts with 207 and its **Give to Priya** is on screen without scrolling; 106 sits under **Can't be placed**. Here's what's already wrong.
 1. **Maya** taps **Problem** on 305 → **DND · 12:00**. It fits, so 305 moves to the end of her list as "Available at 12:00". Toast: "305 moved to 12:00 · still yours · Undo". Jordan isn't bothered.
-2. **Rosa** (red: on track to finish 1:05, after her 1:00 shift end) taps **Problem** on 107 → **DND · 11:30**. It doesn't fit, so 107 leaves her list. Toast: "107 sent to Jordan · Undo". Rosa is now green (12:30).
+2. **Rosa** (amber banner: on track to finish 1:05, after her 1:00 shift end) taps **Problem** on 107 → **DND · 11:30**. It doesn't fit, so 107 leaves her list. Toast: "107 sent to Jordan · Undo". Rosa is now green (12:30).
 3. **Jordan.** Summary **"3 need attention · ● 1 can't be done · 2 to assign"** (Rosa's late item is gone). Tapped open: 106 → 207 → 107, then For your info: "Maya moved 305 to 12:00". **To assign**, most urgent first:
    - **207** · unassigned → Priya · "On floor 2 · free 11:50 · done 12:10 · 50 min spare"
    - **107** · Rosa flagged · DND until 11:30 → Priya
@@ -47,11 +50,13 @@ Fixed for free everywhere: plain language, no PMS codes (#1); arrival times on c
 5. **Team:** Maya 12:40 (20 min spare), Priya 12:48 (12), Rosa 12:30 (30). Before the flag, Rosa had fewer rooms than Maya but was the one running over, because hers were checkouts and a suite.
 6. **Priya's list** ends with 207, then 107 tagged "From Jordan · available 11:30". **Skip ahead** twice (to 11:30) → 107 shows "Ready now"; Priya's 201–203 show "done · simulated".
 
+**Alternative step 2 (hand-off path, e2e scenario 2):** Rosa taps **Hand off 107** in her amber banner instead of flagging it. Toast "107 handed off · Sent to Jordan · would run past 1:00 · Undo"; Rosa turns green (12:30). Jordan's summary lists **"Rosa handed off 107"** as its own row ("Would run past 1:00 · Best: Priya · done 12:28"). **Assign all** → 207 → Priya 11:50–12:10, 107 → Priya 12:13–12:48; 3 → 1.
+
 ## 4. Scope
 
 **In**
-- Housekeeper list (Start / Done / Problem), one-step Problem sheet, **Done today** section
-- Supervisor screen (one scrolling page): **summary line** ("3 need attention" + dotted counts, collapsed; expands into one list grouped by priority, each row jumps to its item) → **To assign** (only rooms someone can take) with per-room recommendation + reason, Give-to (1 tap), Someone else (sheet, infeasible people greyed out with "would finish 1:03"), **Assign all** → **Can't be placed** (no-one rooms, one line each, no button; "Waiting on maintenance" rooms as a muted line) → team finish times
+- Housekeeper list, headed **"Your rooms · in order"** (subtitle "guest arrivals first, then by floor"); the next room has a small **Next** label and the only black Start; Start / Done / Problem on every card; **Hand off** on rooms that would run past shift end; one-step Problem sheet; **Done today** section
+- Supervisor screen (one scrolling page): **summary line** ("3 need attention" + dotted counts, collapsed; expands into one list grouped by priority, each row jumps to its item) → **To assign · most urgent first** (subtitle "by guest arrival, then how long it's waited"; only rooms someone can take) with per-room recommendation + reason, Give-to (1 tap), Someone else (sheet, infeasible people greyed out with "would finish 1:03"), **Assign all** → **Can't be placed** (no-one rooms, one line each, no button; "Waiting on maintenance" rooms as a muted line) → team finish times
 - Toasts that name the room, with Undo
 - Role switch via the familiar "Who are you?" name picker (no PIN): Maya / Priya / Rosa / Jordan. Demo clock with Skip ahead. **Reset demo** control.
 - Maintenance tickets as a simple list under **More** (shell) with a **Mark fixed** button (stands in for Sam's side; unblocks the room in the queue)
@@ -64,33 +69,40 @@ Login/PIN · backend · messaging · inspection / clean → ready · property bo
 2. Don't involve the supervisor unless the housekeeper can't absorb it: a DND that still fits their day stays with them.
 3. Handed-off rooms **join the end** of the new owner's list, so the timeline Jordan was shown is the plan the housekeeper gets.
 4. Priority is calculated (deadline, then wait time), never set by hand.
-5. No typing anywhere in the core flow.
+5. No typing in the core flow. The only text field is Other…, under broken (creates a ticket) and under can't clean it (goes to the queue), for what the chips don't cover.
 6. If no one can make it, say so: the room under Can't be placed + the top item in the summary. Never recommend an infeasible pick.
 7. The summary is grouped by priority (can't be done → running late → to assign → waiting on a fix → for your info) as one ordered list, never a flat chronological feed.
 
-## 5. The Problem sheet (always 2 taps: Problem → option)
+## 5. The Problem sheet (2 taps: Problem → option; Other… adds one short note)
+
+Three sections, same pattern each: a label plus a 4-column grid of soft rectangles (12px radius, light border, equal widths, 52px tall, black fill when pressed). No round pills.
 
 ```
-┌──────────────────────────────────┐
-│  ──                        ✕     │
-│  305 · What's the problem?       │
-│                                  │
-│  Do not disturb · come back at   │
-│  [11:00] [11:30] [12:00] [Later] │
-│                                  │
-│  Something's broken              │
-│  [Light] [Leak] [AC/heat] [TV]   │
-│  [Other]                         │
-│                                  │
-│  [ Guest declined service      ] │
-└──────────────────────────────────┘
+┌──────────────────────────────────────┐
+│  ──                            ✕     │
+│  305 · What's the problem?           │
+│                                      │
+│  Guest asked me to come back         │
+│  [11:00] [11:30] [12:00] [Later]     │
+│  Later = can't get back to it today  │
+│                                      │
+│  Something's broken                  │
+│  [Light] [Leak] [AC/heat] [Other…]   │
+│                                      │
+│  Can't clean it                      │
+│  [Guest   ] [Can't  ] [Other…]       │
+│  [declined] [get in ]                │
+└──────────────────────────────────────┘
 ```
 
 | Option | Effect |
 |---|---|
-| **DND · time** (next three half-hours strictly after now, moving with the clock, dropping any at/after shift end; "Later" = shift end = "can't get back to it today", never fits, always escalates) | **Fits** → slotted into their list, "Available at {time}", toast "305 moved to 12:00 · still yours · Undo". **Doesn't fit** → leaves list → queue with `earliestStart`, toast "107 sent to Jordan · Undo" |
-| **Broken · chip** | Ticket to Sam; room **leaves the list** → queue as "Waiting on maintenance" (no recommendation until Mark fixed). Toast "Ticket sent: 305 · Light · Undo" |
+| **Come back · time** (next three half-hours strictly after now, moving with the clock, dropping any at/after shift end; "Later" = shift end = "can't get back to it today", never fits, always escalates) | **Fits** → slotted into their list, "Available at {time}", toast "305 moved to 12:00 · still yours · Undo". **Doesn't fit** → leaves list → queue with `earliestStart`, toast "107 sent to Jordan · Undo" |
+| **Broken · Light / Leak / AC/heat** | Ticket to Sam; room **leaves the list** → "Waiting on maintenance" (no recommendation until Mark fixed). Toast "Ticket sent: 305 · Light · Undo". (TV is gone from the chips: a TV issue goes through Other….) |
+| **Broken · Other…** | Same sheet swaps to one short field ("What's going on?", hint "you can use the keyboard mic"), headed "Something's broken · tell maintenance". Send (disabled until non-empty, max 80 chars) → ticket with her note; room waits on maintenance as usual |
 | **Guest declined** | Leaves the list → shown to Jordan as "Declined · no action needed" (not in queue) |
+| **Can't get in** | Leaves the list → queue, "Rosa can't get in", with a recommendation. Toast "104 sent to Jordan · Undo" |
+| **Can't clean it · Other…** | Same field, headed "Can't clean it · tell Jordan" → queue with her note as the reason ("Maya: “Mini fridge leaking”") |
 
 **Problem** is a visible secondary pill on every room card, including an in-progress one (flagging mid-clean clears `startedAt`). No swipe. No room detail screen.
 
@@ -144,9 +156,15 @@ No LLM in scheduling: instant, explainable, same answer every time.
 - Not simulated: queued rooms (no owner, blocked), declined rooms. DND rooms only when their planned slot arrives.
 - Skip is not undoable: it clears the undo slot and dismisses any open toast. **Reset demo** is the escape hatch.
 
+**Hand off:** `handOff(roomId)` is allowed only for a `todo` room whose planned end is after its owner's shift end. It leaves her list and joins the queue (`queueReason: 'handoff'`, available now), undoable. Assign all treats it like any queue room (seed: 107 → Priya 12:13–12:48).
+
+**Done guard:** Done appears exactly where Start was, so it ignores taps for 800 ms after a room starts (a double tap on Start must not complete the room).
+
+**Reset demo** returns to the seed but keeps whoever is holding the phone. Switching person or tab starts that screen at the top.
+
 **Manual Done before planned end:** completes now; the rest of that person's day is recalculated from now (times shift earlier; owners and order don't change).
 
-**Undo:** one level, a full-state snapshot taken before each undoable action: flag, Done, assign, Assign all, mark fixed. Start is not undoable. Switching roles dismisses the toast and clears the undo slot.
+**Undo:** one level, a full-state snapshot taken before each undoable action: flag, hand off, Done, assign, Assign all, mark fixed. Start is not undoable. Switching roles dismisses the toast and clears the undo slot.
 
 **DND time chips:** the next three half-hours **strictly after** now (at 10:30: 11:00 · 11:30 · 12:00), dropping any at or after shift end, plus "Later" (= shift end).
 
@@ -176,6 +194,9 @@ No LLM in scheduling: instant, explainable, same answer every time.
 21. Switching roles clears the undo slot; Start is not undoable.
 22. Start moves the room to the front; flagging an in-progress room clears startedAt.
 23. Supervisor summary (`attention()`): at load 1 can't be done + 1 late + 1 to assign = 3, in that order; after the flags 106 → 207 → 107 → For your info; a blocked room counts as "waiting on a fix" after to assign; counts always add up to Rooms needing attention.
+24. Hand off (`handoff.test.ts`): Rosa hands off 107 → queue, Rosa 12:30, undoable; Assign all → 207 Priya 11:50–12:10, 107 Priya 12:13–12:48, 106 stays; rejected for a room not past shift end, in progress, or unowned; summary row "Rosa handed off 107".
+25. Problem sheet reasons (`problem.test.ts`): can't get in → queue with a recommendation; Other… with a note → queue with the note; broken + Other… → ticket with the note, blocked until Mark fixed; empty notes rejected; notes capped at 80 chars.
+26. Reset keeps the current person.
 
 ## 8. Seed data (verified by hand)
 
@@ -213,7 +234,7 @@ src/
 
 **Store contract (frozen after Phase 0):** see `src/domain/types.ts` (Action, State, view types) and `src/domain/selectors.ts`. Highlights:
 
-- Actions: `start`, `complete`, `flag` (dnd/declined/broken), `assign`, `assignAll`, `undo`, `markFixed`, `advanceClock`, `setRole`, `dismissToast`, `reset`.
+- Actions: `start`, `complete`, `flag` (dnd / declined / broken (+ note for Other…) / no_access / other + note), `handOff`, `assign`, `assignAll`, `undo`, `markFixed`, `advanceClock`, `setRole`, `dismissToast`, `reset`.
 - `state.toast: { title, subtitle?, undoable } | null` is set by the reducer, so the UI never guesses outcomes.
 - `state.events`: explicit event log feeding For your info.
 - Selectors: `roomsFor`, `doneFor`, `queue`, `recommendation`, `options`, `projections`, `roomsNeedingAttention`, `inbox`, `attention`, `dndChips`, `tickets`.
@@ -244,5 +265,8 @@ src/
 - **No per-person speed, on purpose.** Rating individual speed would make the app compare coworkers (competitive, toxic dynamics), punish fast staff with more rooms (so people slow down), and push rushing over quality. If added later: learned from Lance's existing start/complete timestamps, opt-in, never displayed, used only to balance load, and capped so faster people don't simply absorb more work.
 - Greedy is a heuristic, not guaranteed optimal; fine for a handful of queued rooms, explainable, instant. Next: check against exhaustive search on small queues.
 - DND "Later" is a guess → room waits at the shift-end boundary.
+- **Not built: auto-return at shift end.** A room still on someone's list when their shift ends just stays there; next: return unstarted rooms to the queue automatically at shift end.
+- The list subtitle "guest arrivals first, then by floor" describes the seed order; rooms slotted by DND or handed over join later in the list (rule 3).
+- A note on an escalated room reaches Jordan but isn't shown on the new owner's card yet.
 
 **Next:** better time estimates per hotel and room type (from Lance's existing timers) · free-text / voice exceptions parsed by an LLM into the same `flag` actions · clean → ready inspection step · per-hotel duration settings.

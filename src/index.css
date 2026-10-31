@@ -16,3 +16,7 @@
 
 html, body, #root { height: 100%; }
 body { margin: 0; background: #F3F4F6; color: var(--color-ink); -webkit-font-smoothing: antialiased; }
+
+@keyframes sheet-up { from { transform: translateY(24px); opacity: .6 } to { transform: none; opacity: 1 } }
+@keyframes toast-in { from { transform: translateY(-12px); opacity: 0 } to { transform: none; opacity: 1 } }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }

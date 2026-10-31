@@ -28,7 +28,7 @@ export function MoreScreen() {
               {t.fixedAt != null ? (
                 <Pill tone="green">Fixed {fmt(t.fixedAt)}</Pill>
               ) : (
-                <Button size="sm" onClick={() => dispatch({ type: 'markFixed', ticketId: t.id })}>
+                <Button size="md" onClick={() => dispatch({ type: 'markFixed', ticketId: t.id })}>
                   Mark fixed
                 </Button>
               )}

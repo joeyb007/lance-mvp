@@ -102,3 +102,16 @@ describe('declined still works', () => {
     expect(s.queue).not.toContain('303')
   })
 })
+
+describe('notes travel with the room', () => {
+  it('the new owner gets the note; a new flag replaces it', () => {
+    let s = run(seedState(), { type: 'flag', roomId: '302', reason: 'other', note: 'Mini fridge leaking' })
+    s = run(s, { type: 'assignAll' })
+    const owner = s.rooms['302'].ownerId!
+    expect(owner).not.toBe('maya')
+    expect(s.rooms['302']).toMatchObject({ fromSupervisor: true, note: 'Mini fridge leaking', flaggedBy: 'maya' })
+    s = run(s, { type: 'flag', roomId: '302', reason: 'no_access' })
+    expect(s.rooms['302'].note).toBeUndefined()
+    expect(s.rooms['302'].flaggedBy).toBe(owner)
+  })
+})

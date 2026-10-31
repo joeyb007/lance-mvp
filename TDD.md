@@ -55,7 +55,7 @@ Fixed for free everywhere: plain language, no PMS codes (#1); arrival times on c
 ## 4. Scope
 
 **In**
-- Housekeeper list, headed **"Your rooms · in order"** (subtitle "guest arrivals first, then by floor"); the next room has a small **Next** label and the only black Start; Start / Done / Problem on every card; **Hand off** on rooms that would run past shift end; one-step Problem sheet; **Done today** section
+- Housekeeper list, headed **"Your rooms · in order"** (subtitle "guest arrivals first, then by floor · new rooms join the end"); the next room has a small **Next** label and the only black Start; Start / Done / Problem on every card; **Hand off** on rooms that would run past shift end; one-step Problem sheet; **Done today** section
 - Supervisor screen (one scrolling page): **summary line** ("3 need attention" + dotted counts, collapsed; expands into one list grouped by priority, each row jumps to its item) → **To assign · most urgent first** (subtitle "by guest arrival, then how long it's waited"; only rooms someone can take) with per-room recommendation + reason, Give-to (1 tap), Someone else (sheet, infeasible people greyed out with "would finish 1:03"), **Assign all** → **Can't be placed** (no-one rooms, one line each, no button; "Waiting on maintenance" rooms as a muted line) → team finish times
 - Toasts that name the room, with Undo
 - Role switch via the familiar "Who are you?" name picker (no PIN): Maya / Priya / Rosa / Jordan. Demo clock with Skip ahead. **Reset demo** control.
@@ -158,7 +158,7 @@ No LLM in scheduling: instant, explainable, same answer every time.
 
 **Hand off:** `handOff(roomId)` is allowed only for a `todo` room whose planned end is after its owner's shift end. It leaves her list and joins the queue (`queueReason: 'handoff'`, available now), undoable. Assign all treats it like any queue room (seed: 107 → Priya 12:13–12:48).
 
-**Done guard:** Done appears exactly where Start was, so it ignores taps for 800 ms after a room starts (a double tap on Start must not complete the room).
+**Nothing moves under her thumb (bug 4 fix):** Start turns into Done in the same spot. The in-progress state replaces the card's fixed-height "Planned" line (green pill "In progress · until 10:50", green card border), and the tags row keeps its height even if a tag drops on Start. Because Done is then exactly where Start was, a double tap would always hit it, so **Done shows disabled for 800 ms after Start, then fades in** (the main protection, visible so a slow tap never feels ignored). Done still has a toast with Undo as the last safety net. Root cause found: the old in-progress banner pushed the buttons down ~44 px, so a low thumb's second tap landed on Done (→ Maya "4 rooms, done 12:20").
 
 **Reset demo** returns to the seed but keeps whoever is holding the phone. Switching person or tab starts that screen at the top.
 
@@ -197,6 +197,9 @@ No LLM in scheduling: instant, explainable, same answer every time.
 24. Hand off (`handoff.test.ts`): Rosa hands off 107 → queue, Rosa 12:30, undoable; Assign all → 207 Priya 11:50–12:10, 107 Priya 12:13–12:48, 106 stays; rejected for a room not past shift end, in progress, or unowned; summary row "Rosa handed off 107".
 25. Problem sheet reasons (`problem.test.ts`): can't get in → queue with a recommendation; Other… with a note → queue with the note; broken + Other… → ticket with the note, blocked until Mark fixed; empty notes rejected; notes capped at 80 chars.
 26. Reset keeps the current person.
+27. Notes travel with the room to the new owner; a new flag replaces the note.
+
+**E2E (Playwright, 390×844, `npm run e2e`):** the §3 demo · the hand-off path · the Problem sheet + Other… → note reaches Priya · double tap on Start (Done in Start's exact box, disabled then enabled, toast + Undo) · Start never moves the buttons even when a tag drops. The guard and the height lock were each removed once to confirm their tests fail.
 
 ## 8. Seed data (verified by hand)
 
@@ -266,7 +269,8 @@ src/
 - Greedy is a heuristic, not guaranteed optimal; fine for a handful of queued rooms, explainable, instant. Next: check against exhaustive search on small queues.
 - DND "Later" is a guess → room waits at the shift-end boundary.
 - **Not built: auto-return at shift end.** A room still on someone's list when their shift ends just stays there; next: return unstarted rooms to the queue automatically at shift end.
-- The list subtitle "guest arrivals first, then by floor" describes the seed order; rooms slotted by DND or handed over join later in the list (rule 3).
-- A note on an escalated room reaches Jordan but isn't shown on the new owner's card yet.
+- A note on an escalated room travels with it: the new owner's card shows "Note from Maya: Mini fridge leaking". A new flag replaces the old note.
+- Known edge: for "Can't get in" / "Other…", the recommendation can be the person who flagged it (if they're still the earliest finish). Next: exclude the flagger for reasons that are about the room, not the time.
+- Starting a room that isn't first moves its card to the top (it's what she's doing). The next room, the one with the black Start, never moves.
 
 **Next:** better time estimates per hotel and room type (from Lance's existing timers) · free-text / voice exceptions parsed by an LLM into the same `flag` actions · clean → ready inspection step · per-hotel duration settings.

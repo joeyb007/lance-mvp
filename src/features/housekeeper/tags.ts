@@ -10,7 +10,7 @@ export interface Tag {
 }
 
 /**
- * Tags in display order. The in-progress state is shown as the card's green banner, not a tag.
+ * Tags in display order. The in-progress state replaces the card's "Planned" line, not a tag.
  * - waiting (DND / not yet available): "Available at 12:00" or "From Jordan · available 11:30"
  * - handed over, now available: "From Jordan · ready now" (had a come-back time) or "From Jordan"
  * - own room whose come-back time has passed: "Ready now"

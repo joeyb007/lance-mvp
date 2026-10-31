@@ -74,6 +74,7 @@ function flag(d: Draft, action: Extract<Action, { type: 'flag' }>): boolean {
   room.status = 'todo'
   delete room.startedAt
   delete room.availableAt
+  delete room.note // a new flag replaces any earlier note (and flaggedBy is set again below)
 
   if (action.reason === 'declined') {
     room.status = 'declined'

@@ -1,5 +1,6 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cleanLabel, fmt } from '../../domain/format'
+import { firstName } from '../../domain/seed'
 import type { Minutes, PlannedRoom } from '../../domain/types'
 import { Button, Pill, RoomChip } from '../../ui'
 import { roomTags } from './tags'
@@ -19,18 +20,27 @@ interface Props {
   onHandOff?: () => void
 }
 
-/** Done appears exactly where Start was; ignore it briefly so a double tap on Start can't complete the room. */
+/**
+ * Nothing moves under her thumb: Start turns into Done in the same spot (the in-progress state replaces the
+ * "Planned" line, which has a fixed height, and the tags row keeps its height). Because Done is exactly where
+ * Start was, a double tap would always hit it, so Done shows disabled for a moment after Start, then fades in.
+ * (Done still has a toast with Undo as the last safety net.)
+ */
 const DONE_ARM_MS = 800
 
 /** One open room on "Your rooms". Start → Done, Problem on every open card, Hand off when it runs past shift end. */
 export function RoomCard({ plan, now, shiftEnd, busy, next, onStart, onDone, onProblem, onHandOff }: Props) {
-  const doneArmsAt = useRef(0)
+  const tagsRow = useRef<HTMLDivElement>(null)
+  const [lockedTagsHeight, setLockedTagsHeight] = useState<number>()
+  const [doneArmed, setDoneArmed] = useState(true)
+  const armTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(armTimer.current), [])
   const tapStart = () => {
-    doneArmsAt.current = Date.now() + DONE_ARM_MS
+    setLockedTagsHeight(tagsRow.current?.offsetHeight) // starting may drop a tag ("Ready now"); keep the row's height
+    setDoneArmed(false)
+    clearTimeout(armTimer.current)
+    armTimer.current = setTimeout(() => setDoneArmed(true), DONE_ARM_MS)
     onStart()
-  }
-  const tapDone = () => {
-    if (Date.now() >= doneArmsAt.current) onDone()
   }
   const { room, start, end, waiting } = plan
   const inProgress = room.status === 'in_progress'
@@ -41,34 +51,34 @@ export function RoomCard({ plan, now, shiftEnd, busy, next, onStart, onDone, onP
       data-testid={`room-${room.id}`}
       className={`overflow-hidden rounded-[14px] border bg-white ${inProgress ? 'border-accent shadow-[0_0_0_1px_var(--color-accent)]' : 'border-line'}`}
     >
-      {inProgress && (
-        <div className="flex items-center gap-2 bg-accent-soft px-4 py-2.5 text-[14px] font-semibold text-accent">
-          <span className="h-2 w-2 rounded-full bg-accent" aria-hidden />
-          <span className="flex-1">In progress · since {fmt(room.startedAt ?? start)}</span>
-          <span className="font-medium tabular-nums">until {fmt(end)}</span>
-        </div>
-      )}
-
       <div className="p-4">
         <div className="flex items-center gap-3">
           <RoomChip id={room.id} />
           <div className="min-w-0 flex-1">
             <div className="text-[16px] font-semibold leading-snug">{cleanLabel(room)}</div>
-            {!inProgress && (
-              <div className="mt-0.5 flex items-center gap-2 text-[13px] text-muted tabular-nums">
-                {next && (
-                  <span data-testid="next">
-                    <Pill tone="dark">Next</Pill>
-                  </span>
-                )}
-                Planned {fmt(start)}–{fmt(end)}
-              </div>
-            )}
+            {/* Fixed height so swapping "Planned" for "In progress" never moves the buttons. */}
+            <div className="mt-0.5 flex h-6 items-center gap-2 whitespace-nowrap text-[13px] text-muted tabular-nums">
+              {inProgress ? (
+                <span data-testid="in-progress">
+                  <Pill tone="green">● In progress · until {fmt(end)}</Pill>
+                </span>
+              ) : (
+                <>
+                  {next && (
+                    <span data-testid="next">
+                      <Pill tone="dark">Next</Pill>
+                    </span>
+                  )}
+                  Planned {fmt(start)}–{fmt(end)}
+                </>
+              )}
+            </div>
           </div>
         </div>
 
+        <div ref={tagsRow} style={inProgress && lockedTagsHeight ? { minHeight: lockedTagsHeight } : undefined}>
         {(tags.length > 0 || onHandOff) && (
-          <div className="mt-3 flex items-center gap-2">
+          <div className="flex items-center gap-2 pt-3">
             <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
               {tags.map((t) => (
                 <Pill key={t.text} tone={t.tone}>
@@ -83,10 +93,17 @@ export function RoomCard({ plan, now, shiftEnd, busy, next, onStart, onDone, onP
             )}
           </div>
         )}
+        {/* A handed-over room carries the note that sent it to the queue: Priya needs to know about the mini fridge. */}
+        {room.fromSupervisor && room.note && room.flaggedBy && (
+          <p className="mt-3 rounded-[10px] bg-chip px-3 py-2 text-[14px] leading-snug" data-testid={`note-${room.id}`}>
+            <span className="font-semibold">Note from {firstName(room.flaggedBy)}:</span> {room.note}
+          </p>
+        )}
+        </div>
 
         <div className="mt-3 flex gap-2">
           {inProgress ? (
-            <Button className="flex-1" onClick={tapDone} data-testid={`complete-${room.id}`}>
+            <Button className="flex-1 duration-500" onClick={onDone} disabled={!doneArmed} data-testid={`complete-${room.id}`}>
               Done
             </Button>
           ) : (

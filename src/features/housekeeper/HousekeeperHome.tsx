@@ -50,7 +50,7 @@ export function HousekeeperHome({ housekeeperId }: { housekeeperId: HousekeeperI
 
       <Section title="Your rooms · in order">
         {/* The order is calculated (seed lists are pre-sorted); say so, without numbering the cards. */}
-        <p className="-mt-1.5 mb-3 text-[13px] text-muted">guest arrivals first, then by floor</p>
+        <p className="-mt-1.5 mb-3 text-[13px] text-muted">guest arrivals first, then by floor · new rooms join the end</p>
         {plan.length === 0 ? (
           <Card className="flex flex-col items-center px-6 py-8 text-center" data-testid="empty">
             <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent-soft text-accent">

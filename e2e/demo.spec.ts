@@ -275,21 +275,73 @@ test('Problem sheet: chips and Other…', async ({ page }) => {
   await sheet.getByRole('button', { name: 'Send' }).click()
   await expect(toast(page)).toContainText('302 sent to Jordan')
   await expect(toast(page)).toContainText('Mini fridge leaking')
+
+  // The note travels with the room: Jordan assigns it, and the new owner sees "Note from Maya".
+  await become(page, 'Jordan Blake')
+  await expect(page.getByTestId('queue-302')).toContainText('Maya: “Mini fridge leaking”')
+  await page.getByTestId('assign-all').click()
+  await expect(toast(page)).toContainText('302 → Priya')
+  await become(page, 'Priya Patel')
+  await expect(page.getByTestId('note-302')).toHaveText('Note from Maya: Mini fridge leaking')
+  await page.getByTestId('note-302').scrollIntoViewIfNeeded()
+  await shot(page, 's3-priya-gets-note')
 })
 
 // Double tap on Start must not complete the room (bug 4: Maya showed 4 rooms / 12:20).
+// Cause fixed: Start turns into Done in the same spot (nothing moves). Guard: Done shows disabled for 800 ms, then enables.
 test('double tap on Start does not complete the room', async ({ page }) => {
   await page.goto('/')
   await page.getByText('Maya Chen').click()
   const start = page.getByTestId('room-305').getByRole('button', { name: 'Start' })
-  // Start adds the "In progress" banner, pushing the row down ~44px: Done ends up under a thumb that tapped low on Start.
-  const { x, y, width, height } = (await start.boundingBox())!
-  const thumb = { x: x + width / 2, y: y + height - 4 }
+  const before = (await start.boundingBox())!
+  const thumb = { x: before.x + before.width / 2, y: before.y + before.height / 2 }
   await page.mouse.click(thumb.x, thumb.y)
+  const done = page.getByTestId('complete-305')
+  // Nothing moved under her thumb: Done occupies exactly Start's box.
+  const after = (await done.boundingBox())!
+  expect([after.x, after.y, after.width, after.height].map(Math.round)).toEqual([before.x, before.y, before.width, before.height].map(Math.round))
+  // The guard is visible: Done is disabled right after Start...
+  await expect(done).toBeDisabled()
   await page.waitForTimeout(150)
-  const done = await page.getByTestId('complete-305').boundingBox()
-  expect(thumb.y).toBeGreaterThanOrEqual(done!.y) // the second tap really lands on Done
-  await page.mouse.click(thumb.x, thumb.y)
-  await expect(page.getByTestId('room-305')).toContainText('In progress')
+  await page.mouse.click(thumb.x, thumb.y) // the double tap's second tap lands on Done, and is ignored
+  await expect(page.getByTestId('room-305').getByTestId('in-progress')).toBeVisible()
   await expect(page.getByTestId('summary')).toContainText('5 rooms left · done by 12:40')
+  await shot(page, 'd1-done-guarded')
+  // ...then enables. A deliberate Done completes the room with a toast + Undo (the last safety net).
+  await expect(done).toBeEnabled({ timeout: 2000 })
+  await done.click()
+  await expect(toast(page)).toContainText('305 completed')
+  await expect(toast(page).getByRole('button', { name: 'Undo' })).toBeVisible()
+  await expect(page.getByTestId('summary')).toContainText('4 rooms left')
+  await toast(page).getByRole('button', { name: 'Undo' }).click()
+  await expect(page.getByTestId('room-305').getByTestId('in-progress')).toBeVisible()
+  await expect(page.getByTestId('summary')).toContainText('5 rooms left · done by 12:40')
+})
+
+// A room that loses its tag on Start ("Ready now") keeps its buttons in place too.
+test('Start never moves the buttons, even when a tag disappears', async ({ page }) => {
+  await page.goto('/')
+  await page.getByText('Maya Chen').click()
+  // 305 DND until 11:00 (fits, slotted later), then skip to 11:00 so it reads "Ready now".
+  await page.getByTestId('room-305').getByRole('button', { name: 'Problem' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: '11:00', exact: true }).click()
+  await page.getByRole('button', { name: 'Skip 30 min' }).click()
+  const card = page.getByTestId('room-305')
+  await expect(card).toContainText('Ready now')
+  // Finish whatever she was in the middle of so 305 can be started.
+  const busy = page.locator('[data-testid^="complete-"]')
+  if (await busy.count()) {
+    await expect(busy.first()).toBeEnabled({ timeout: 2000 })
+    await busy.first().click()
+  }
+  // Measure the button relative to its own card (the card is already first, so the card doesn't move either).
+  const start = card.getByRole('button', { name: 'Start' })
+  const cardBefore = (await card.boundingBox())!
+  const before = (await start.boundingBox())!
+  await start.click()
+  await expect(card).not.toContainText('Ready now') // the tag really did disappear
+  const cardAfter = (await card.boundingBox())!
+  const after = (await page.getByTestId('complete-305').boundingBox())!
+  expect(Math.round(cardAfter.y)).toBe(Math.round(cardBefore.y))
+  expect([after.x, after.y, after.width, after.height].map(Math.round)).toEqual([before.x, before.y, before.width, before.height].map(Math.round))
 })

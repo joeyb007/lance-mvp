@@ -30,9 +30,9 @@ export function Shell() {
   }
 
   const tabs: Tab[] = [
-    { id: 'messages', label: 'Messages', icon: '💬', inert: true },
-    { id: 'work', label: isSupervisor ? 'Housekeeping' : 'My work', icon: '☰' },
-    { id: 'more', label: 'More', icon: '⋯' },
+    { id: 'messages', label: 'Messages', icon: 'chat', inert: true },
+    { id: 'work', label: isSupervisor ? 'Housekeeping' : 'My work', icon: 'list' },
+    { id: 'more', label: 'More', icon: 'more' },
   ]
 
   return (

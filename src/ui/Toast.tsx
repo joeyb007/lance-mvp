@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useStore } from '../state/store'
+import { Icon } from './Icon'
 
 const SHOW_MS = 6000
 
@@ -18,7 +19,7 @@ export function Toast() {
   return (
     <div className="pointer-events-none absolute inset-x-3 top-3 z-50 flex justify-center" role="status" aria-live="polite">
       <div key={toast.id} className="pointer-events-auto flex w-full items-center gap-3 rounded-[16px] bg-[#111] px-4 py-3 text-white shadow-xl animate-[toast-in_160ms_ease-out]">
-        <span className="text-[16px]">✓</span>
+        <Icon name="check" size={18} className="shrink-0" />
         <div className="min-w-0 flex-1">
           <div className="text-[15px] font-semibold leading-tight">{toast.title}</div>
           {toast.subtitle && <div className="mt-0.5 text-[13px] leading-tight text-white/60">{toast.subtitle}</div>}

@@ -1,7 +1,9 @@
+import { Icon, type IconName } from './Icon'
+
 export interface Tab {
   id: string
   label: string
-  icon: string
+  icon: IconName
   inert?: boolean
 }
 
@@ -16,7 +18,7 @@ export function TabBar({ tabs, active, onChange }: { tabs: Tab[]; active: string
           aria-current={active === t.id ? 'page' : undefined}
           className={`flex h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[12px] font-medium ${active === t.id ? 'text-ink' : 'text-muted'} ${t.inert ? 'opacity-60' : ''}`}
         >
-          <span className="text-[18px] leading-none">{t.icon}</span>
+          <Icon name={t.icon} size={22} />
           {t.label}
         </button>
       ))}

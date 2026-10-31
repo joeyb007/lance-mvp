@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Avatar } from './Avatar'
+import { Icon } from './Icon'
 
 /** Lance header: initials avatar (tap → name picker) + bold title + bell. */
 export function Header({ initials, title, onAvatar, right }: { initials: string; title: string; onAvatar: () => void; right?: ReactNode }) {
@@ -10,8 +11,8 @@ export function Header({ initials, title, onAvatar, right }: { initials: string;
       </button>
       <h1 className="flex-1 text-[22px] font-bold tracking-tight">{title}</h1>
       {right}
-      <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-chip text-[17px]">
-        🔔
+      <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-chip text-ink">
+        <Icon name="bell" />
       </span>
     </header>
   )
